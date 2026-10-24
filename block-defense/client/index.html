@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ブロック防衛線</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- 画面の骨組みだけを置く。動きは js/main.js から始まる -->
+<canvas id="cv"></canvas>
+
+<div id="hud" hidden>
+  <div class="tl pnl"><div class="lbl" id="waveLbl">ウェーブ</div><div id="wave" class="big">1</div><div id="left" class="sub"></div></div>
+  <div class="tc pnl" id="corePanel">
+    <div class="lbl" id="coreLbl">拠点コア</div><div class="bar core"><i id="coreBar"></i></div><div id="coreTxt" class="sub"></div>
+    <div id="core2" hidden><div class="lbl" id="coreLbl2" style="margin-top:6px">相手のコア</div><div class="bar core foe"><i id="coreBar2"></i></div><div id="coreTxt2" class="sub"></div></div>
+  </div>
+  <div class="tr pnl">
+    <div class="row"><span class="lbl" id="scoreLbl">スコア</span><b id="score">0</b></div>
+    <div class="row"><span class="ico blk"></span><b id="blocks">20</b></div>
+  </div>
+  <div class="bl pnl"><div class="lbl" id="hpLbl">体力</div><div class="bar hp"><i id="hpBar"></i></div></div>
+  <div id="keys" class="pnl">左クリック 撃つ ・ 右クリック 板を置く ・ F こわす ・ スペース ジャンプ</div>
+  <div id="cross"></div>
+  <div id="feed" aria-live="polite"></div>
+  <div id="warn"></div>
+  <div id="banner"><div class="t" id="bannerT"></div><button class="btn sm" id="bNext" hidden>すぐ始める（N）</button></div>
+  <div id="toast"></div>
+  <div id="hurt"></div>
+</div>
+
+<div id="touch" hidden>
+  <div id="joyzone"><div id="joy"><div id="knob"></div></div></div>
+  <div id="lookzone"></div>
+  <div id="tbtns">
+    <button id="bFire">撃つ</button>
+    <button id="bPlace">置く</button><button id="bBreak">こわす</button>
+    <button id="bJump">ジャンプ</button>
+  </div>
+</div>
+
+<div id="title" class="screen">
+  <div class="card pnl">
+    <div class="logo">ブロック防衛線</div>
+    <div class="lead">ブロックでできた島のまんなかに、拠点コアがあります。<br>押し寄せるロボット軍団から、コアを守りぬこう。<br>倒すと木の板が手に入り、壁を足して守りを固められます。</div>
+    <div class="ctl">
+      <div><h3>パソコン</h3><b>WASD</b> 移動　<b>マウス</b> 視点<br><b>左クリック</b> 撃つ（長押しで連射）<br><b>右クリック</b> 板を置く　<b>F</b> 板をこわす<br><b>スペース</b> ジャンプ　<b>Esc</b> 一時停止</div>
+      <div><h3>タブレット・スマホ</h3><b>左下スティック</b> 移動<br><b>画面右側をなぞる</b> 視点<br><b>撃つ・置く・こわす・ジャンプ</b> ボタン<br>横向きがおすすめです</div>
+    </div>
+    <div class="namerow"><label for="nameIn">なまえ</label><input id="nameIn" maxlength="12" placeholder="プレイヤー" autocomplete="off"></div>
+    <div class="btnrow"><button class="btn" id="bStart">ひとりで遊ぶ</button><button class="btn alt" id="bOnline">みんなで遊ぶ</button></div>
+    <div class="note">「みんなで遊ぶ」はサーバーを起動し、そのアドレスで開いたときに使えます。<br>待合室で「協力プレイ」か「対戦プレイ（赤と青で拠点を攻め合う）」を選べます。</div>
+    <div class="sub" id="bestT"></div>
+  </div>
+</div>
+
+<div id="pause" class="screen" hidden>
+  <div class="card pnl"><div class="logo" style="font-size:36px">一時停止中</div><div class="lead" id="pauseLead">画面をクリックすると再開します</div><div><button class="btn" id="bResume">再開する</button></div></div>
+</div>
+
+<div id="lobby" class="screen" hidden>
+  <div class="card pnl">
+    <div class="logo" style="font-size:clamp(28px,6vw,40px)">待合室</div>
+    <div class="modes" role="group" aria-label="モード">
+      <button class="mode on" id="mCoop" aria-pressed="true">協力プレイ<small>みんなでロボットから拠点を守る</small></button>
+      <button class="mode" id="mPvp" aria-pressed="false">対戦プレイ<small>赤と青で相手のコアを壊し合う</small></button>
+    </div>
+    <div id="lobbyTeams"></div>
+    <div class="btnrow"><button class="btn sm" id="bTeam" hidden>チームを移る</button><button class="btn" id="bGo">ゲーム開始</button></div>
+    <div class="note" id="lobbyNote"></div>
+    <div><button class="btn sm ghost" id="bLeave">タイトルに戻る</button></div>
+  </div>
+</div>
+
+<div id="over" class="screen" hidden>
+  <div class="card pnl">
+    <div class="logo" id="overTitle" style="color:var(--danger)">コアが壊された！</div>
+    <div class="stats" id="overStats"></div>
+    <div class="note" id="overNote"></div>
+    <div id="retryRow"><button class="btn" id="bRetry">もう一度</button></div>
+  </div>
+</div>
+
+<!-- 3D描画ライブラリ（グローバル変数 THREE を用意する） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- ゲーム本体（ESモジュール） -->
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
